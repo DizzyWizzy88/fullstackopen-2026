@@ -1,27 +1,17 @@
 const express = require('express')
-const morgan = require('morgan')
+const cors = require('cors')
 const app = express()
 
-//Formats JSON responses with 2-space indentation
-app.set('json spaces', 2)
+app.use(cors())
 
 // Ensure express.json() is called FIRST so request.body is parsed
 app.use(express.json())
 
-// Define a custom morgan token named 'req-body'
-morgan.token('req-body', (request) => {
-    // Only log the body for POST requests to avoid exra output on GET/DELETE
-    if (request.method === 'POST') {
-        return JSON.stringify(request.body)
-    }
-    return ''
-})
+app.use(express.static('dist'))
 
-// Configure morgan format string including the custom :req-body token
-app.use(
-    morgan(':method :url :status :res[content-length] - :response-time ms :req-body')
+//Formats JSON responses with 2-space indentation
+app.set('json spaces', 2)
 
-)
 
 let persons = [
     {
@@ -86,23 +76,17 @@ app.delete('/api/persons/:id', (request, response) => {
 // Add a new person entry
 app.post('/api/persons', (request, response) => {
     const body = request.body
+    console.log('Incoming POST body:', body)
 
-    // Basic check to ensure name exists
-    if (!body.name) {
+    // Basic check to ensure name/number exists
+    if (!body.name || !body.number) {
         return response.status(400).json({
-            error: 'name missing'
-        })
-    }
-
-    // Check if number is missing
-    if (!body.number) {
-        return  response.status(400).json({
-            error: 'number missing'
+            error: 'name or number missing'
         })
     }
 
     // Check if the name already exists in the phonebook
-    const nameExists = persons.some(person => person.name.toLowerCase() === body.name.toLowerCase())
+    const nameExists = persons.some(p => p.name.toLowerCase() === body.name.toLowerCase())
     if (nameExists) {
         return response.status(400).json({
             error: 'name must be unique'
@@ -110,13 +94,10 @@ app.post('/api/persons', (request, response) => {
     }
 
 
-    //Generate a random ID (e.g., between 1 and 1,000,000)
-    const randomId = Math.floor(Math.random() * 1000000).toString()
-
     const person = {
-        id: randomId,
+        id: String(Math.floor(Math.random() * 1000000)), 
         name: body.name,
-        number: body.number
+        number: body.number,
     }
 
     persons = persons.concat(person)

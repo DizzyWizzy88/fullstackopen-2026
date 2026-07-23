@@ -1,13 +1,14 @@
 const express = require('express')
 const cors = require('cors')
 const app = express()
+const path = require('path')
 
 app.use(cors())
 
 // Ensure express.json() is called FIRST so request.body is parsed
 app.use(express.json())
 
-app.use(express.static('dist'))
+app.use(express.static(path.join(__dirname, 'dist')))
 
 //Formats JSON responses with 2-space indentation
 app.set('json spaces', 2)

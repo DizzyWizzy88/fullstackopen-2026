@@ -1,10 +1,11 @@
-const express = require('express')
-const cors = require('cors')
-const app = express()
+require('dotenv').config()
 const path = require('path')
+const express = require('express')
+const Person = require('./models/person')
 
-app.use(cors())
+const app = express()
 
+// Core Express Middleware
 // Ensure express.json() is called FIRST so request.body is parsed
 app.use(express.json())
 
@@ -13,107 +14,114 @@ app.use(express.static(path.join(__dirname, 'dist')))
 //Formats JSON responses with 2-space indentation
 app.set('json spaces', 2)
 
-
-let persons = [
-    {
-        id: "1",
-        name: "Arto Hellas",
-        number: "040-123456"
-    },
-    {
-        id: "2",
-        name: "Ada Lovelace",
-        number: "39-44-5323523"
-    },
-    {
-        id: "3",
-        name: "Dan Abramov",
-        number: "12-43-234345"
-    },
-    {
-        id: "4",
-        name: "Mary Poppendieck",
-        number: "39-23-6423122"
-    }
-]
-
-app.get('/api/persons', (request, response) => {
-    response.json(persons)
+// GET all persons from MongoDB
+app.get('/api/persons', (request, response, next) => {
+    Person.find({})
+        .then(persons => {
+            response.json(persons)
+        })
+        .catch(error => next(error))
 })
 
-// Info route
-app.get('/info', (request, response) => {
-    const count = persons.length
-    const date = new Date()
+// GET single person by ID (Triggers CastError if Id is malformed)
+app.get('/api/persons/:id', (request, response, next) => {
+    Person.findById(request.params.id)
+        .then(person => {
+            if (person) {
+                response.json(person)
+            } else {
+                response.status(404).end()
+            }
+        })
+        .catch(error => next(error))
+}) 
 
-    response.send(`
-        <p>Phonebook has info for ${count} people</p>
-        <p>${date}</p>
-        `)
+// Get info page showing count and current timestamp
+app.info = app.get('/info', (request, response, next) => {
+    Person.countDocuments({})
+        .then(count => {
+            const date = new Date()
+            response.send(`
+                <p>Phonebook has info for ${count} people</p>
+                <p>${date}</p>
+                `)
+                .catch(error => next(error))
+        })
 })
 
-// Single person info route
-app.get('/api/persons/:id', (request, response) => {
-    const id = request.params.id
-    const person = persons.find(p => p.id === id)
-
-    if (person) {
-        response.json(person)
-    } else {
-        // return 404 status if it is not in the array
-        response.status(404).end()
-    }
-})
-
-// Single person deletion route
-app.delete('/api/persons/:id', (request, response) => {
-    const id = request.params.id
-    persons = persons.filter(person => person.id !== id)
-
-    // 204 No Content signifies successful deletion with no body returned
-    response.status(204).end()
-})
-
-// Add a new person entry
-app.post('/api/persons', (request, response) => {
+// POST new person
+app.post('/api/persons', (request, response, next) => {
     const body = request.body
-    console.log('Incoming POST body:', body)
 
-    // Basic check to ensure name/number exists
     if (!body.name || !body.number) {
         return response.status(400).json({
             error: 'name or number missing'
         })
     }
 
-    // Check if the name already exists in the phonebook
-    const nameExists = persons.some(p => p.name.toLowerCase() === body.name.toLowerCase())
-    if (nameExists) {
-        return response.status(400).json({
-            error: 'name must be unique'
-        })
-    }
-
-
-    const person = {
-        id: String(Math.floor(Math.random() * 1000000)), 
+    const person = new Person({
         name: body.name,
         number: body.number,
-    }
+    })
 
-    persons = persons.concat(person)
-
-    response.json(person)
+    person.save()
+        .then(savedPerson => {
+        response.json(savedPerson)
+        })
+        .catch(error => next(error))
 })
 
+app.delete('/api/persons/:id', (request, response, next) => {
+    Person.findByIdAndDelete(request.params.id)
+        .then(result => {
+            // 204 No Content indicates successful deltetion
+            response.status(204).end()
+        })
+        .catch(error => next(error))
+})
+
+// PUT update an existing person's number
+app.put('/api/persons/:id', (request, response, next) => {
+    const { name, number } = request.body
+
+    // { new: true } returns the updated document instead of the original
+    Person.findByIdAndUpdate(
+        request.params.id,
+        { name, number },
+        { new: true, runValidators: true, context: 'query' }
+    )
+        .then(updatedPerson => {
+            if (updatedPerson) {
+                response.json(updatedPerson)
+            } else {
+                response.status(404).end()
+            }
+        })
+        .catch(error => next(error))
+})
+
+// Middleware for handling requests to unknown endpoints
 const unknownEndpoint = (request, response) => {
-    response.status(404).send({
-        error: 'unknown endpoint'
-    })
+    response.status(404).send({ error: 'unknown endpoint' })
 }
 
 app.use(unknownEndpoint)
 
+// Centralized Error Handling Middleware
+const errorHandler = (error, request, response, next) => {
+    console.error(error.message)
+
+    if (error.name === 'CastError') {
+        return response.status(400).send({ error: 'malformed id'})
+    } else if (error.name === 'ValidationError') {
+        return response.status(400).json({ error: error.message })
+    }
+
+    next(error)
+}
+
+// Needs to be the last loaded middleware!
+app.use(errorHandler)
 
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {

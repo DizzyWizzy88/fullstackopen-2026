@@ -6,7 +6,8 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "build:ui": "rm -rf dist && cd ../../part2/phonebook && npm install && npm run build && cp -r dist ../../part3/phonebook-backend",
-    "deploy:full": "npm run build:ui"
+    "deploy:full": "npm run build:ui",
+    "lint": "eslint"
   },
   "keywords": [],
   "author": "",
@@ -14,10 +15,17 @@
   "description": "",
   "dependencies": {
     "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "mongoose": "^9.8.0",
     "morgan": "^1.11.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@stylistic/eslint-plugin": "^5.10.0",
+    "@stylistic/eslint-plugin-js": "^4.4.1",
+    "eslint": "^10.8.0",
+    "globals": "^17.8.0",
     "nodemon": "^3.1.14"
   }
 }

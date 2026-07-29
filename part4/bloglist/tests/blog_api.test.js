@@ -93,7 +93,33 @@ test('if likes property is missing it defaults to 0', async () => {
         .expect(201)
         .expect('Content-Type', /application\/json/)
         
-    assert.strictEqual(response.body.likes, 0)
+    assert.strictEqual(response.body.likes, 0) 
+})
+
+test('blog without title is not added', async () => {
+    const newBlog = {
+        author: 'Robert C. Martin',
+        url: 'http://blog.cleancoder.com/uncle-bob/2016/05/01/TypeWars.html',
+        likes: 2
+    }
+
+    await api
+        .post('/api/blogs')
+        .send(newBlog)
+        .expect(400)
+})
+
+test('blog without url is not added', async () => {
+    const newBlog = {
+        title: 'Type wars',
+        author: 'Robert C. Martin',
+        likes: 2
+    }
+
+    await api
+        .post('/api/blogs')
+        .send(newBlog)
+        .expect(400)
 })
 
 after(async () => {

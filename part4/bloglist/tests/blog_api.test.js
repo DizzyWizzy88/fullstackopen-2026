@@ -54,6 +54,32 @@ test('unique identifier property of the blog posts is named id', async () => {
     assert.strictEqual(blogs[0]._id, undefined)
 })
 
+test('a valid blog can be added', async () => {
+    const newBlog = {
+        title: 'Canonical String Reduction',
+        author: 'Edsger W. Dijkstra',
+        url: 'http://www.cs.utexas.edu/users/EWD/transcriptions/EWD08xx/EWD808.html',
+        likes: 12
+    }
+
+    // 1. Make a POST request
+    await api
+        .post('/api/blogs')
+        .send(newBlog)
+        .expect(201)
+        .expect('Content-Type', /application\/json/)
+
+        // 2. Fetch all blogs after creation 
+        const response = await api.get('/api/blogs')
+
+        // 3. Verify total count increased by 1
+        assert.strictEqual(response.body.length, initialBlogs.length + 1)
+
+        // 4. Verify the new blog's content is present
+        const titles = response.body.map(r => r.title)
+        assert.ok(titles.includes('Canonical String Reduction'))
+})
+
 after(async () => {
     await mongoose.connection.close()
 })

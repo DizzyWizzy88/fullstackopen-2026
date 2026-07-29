@@ -141,6 +141,24 @@ test('succeeds with status code 204 if id is valid', async () => {
     assert.ok(!titles.includes(blogToDelete.title))
 })
 
+test('succeeds with status code 200 when updating likes on an existing blog', async () => {
+    const blogsAtStart = await api.get('/api/blogs')
+    const blogToUpdate = blogsAtStart.body[0]
+
+    const updatedData = {
+        ...blogToUpdate,
+        likes: blogToUpdate.likes + 1
+    }
+
+    const response = await api
+        .put(`/api/blogs/${blogToUpdate.id}`)
+        .send(updatedData)
+        .expect(200)
+        .expect('Content-Type', /application\/json/)
+
+    assert.strictEqual(response.body.likes, blogToUpdate.likes + 1)
+})
+
 after(async () => {
     await mongoose.connection.close()
 })

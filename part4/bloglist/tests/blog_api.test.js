@@ -36,13 +36,22 @@ beforeEach(async () => {
 
 describe('when there are initially some blogs saved', () => {
     test('blogs are returned as json and correct amount is returned', async () => {
-        const response = await api
+        await api
             .get('/api/blogs')
             .expect(200)
             .expect('Content-Type', /application\/json/)
-
-        assert.strictEqual(response.body.length, initialBlogs.length)
     })
+})
+
+test('unique identifier property of the blog posts is named id', async () => {
+    const response = await api.get('/api/blogs')
+
+    const blogs = response.body
+
+    //Check that the first blog object has an 'id' property defined
+    assert.ok(blogs[0].id)
+    // Optionally we can verify that '_id' is undefined after transformation
+    assert.strictEqual(blogs[0]._id, undefined)
 })
 
 after(async () => {

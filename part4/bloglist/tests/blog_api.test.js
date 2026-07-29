@@ -122,6 +122,25 @@ test('blog without url is not added', async () => {
         .expect(400)
 })
 
+test('succeeds with status code 204 if id is valid', async () => {
+    // 1. Fetch current blogs to pick one to delete
+    const responseAtStart = await api.get('/api/blogs')
+    const blogToDelete = responseAtStart.body[0]
+
+    // 2. Send DELETE request
+    await api
+        .delete(`/api/blogs/${blogToDelete.id}`)
+        .expect(204)
+
+    // 3. Verify total number of blogs decreased by 1
+    const responseAtEnd = await api.get('/api/blogs')
+    assert.strictEqual(responseAtEnd.body.length, responseAtStart.body.length -1 )
+
+    // 4. Verify the deleted blog's title is no longer present
+    const titles = responseAtEnd.body.map(r => r.title)
+    assert.ok(!titles.includes(blogToDelete.title))
+})
+
 after(async () => {
     await mongoose.connection.close()
 })

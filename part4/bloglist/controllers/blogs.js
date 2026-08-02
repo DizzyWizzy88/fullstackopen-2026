@@ -1,7 +1,18 @@
+const jwt = require('jsonwebtoken')
 const blogsRouter = require('express').Router()
 const Blog = require('../models/blog')
 const User = require('../models/user')
 
+// Helper function to extract the Bearer token from headers
+const getTokenFrom = request => {
+    const authorization = request.headers.authorization
+    if (authorization && authorization.startsWith('Bearer')) {
+        return authorization.substring(7)
+    }
+    return null
+}
+
+// GET all blogs
 blogsRouter.get('/', async (request, response) => {
     const blogs = await Blog
         .find({})
@@ -9,12 +20,20 @@ blogsRouter.get('/', async (request, response) => {
     response.json(blogs)
     })
 
+// POST new blog
 blogsRouter.post('/', async (request, response, next) => {
     try {
         const body = request.body
+        const token = getTokenFrom(request)
 
-        // Find the first user in the database to attach as creator
-        const user = await User.findOne({})
+        // Verify token using secret key
+        const decodedToken = jwt.verify(token, process.env.SECRET)
+        if (!decodedToken.id) {
+            return response.status(401).json({ error: 'token invalid' })
+        }
+
+        // Find the first user who sent the token
+        const user = await User.findById(decodedToken.id)
 
         if (!user) {
             return response.status(400).json({ error: 'no user to assign blog to' })

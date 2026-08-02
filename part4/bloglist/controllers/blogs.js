@@ -10,7 +10,7 @@ const getTokenFrom = request => {
         return authorization.substring(7)
     }
     return null
-}
+} 
 
 // GET all blogs
 blogsRouter.get('/', async (request, response) => {
@@ -27,7 +27,7 @@ blogsRouter.post('/', async (request, response, next) => {
         const token = getTokenFrom(request)
 
         // Verify token using secret key
-        const decodedToken = jwt.verify(token, process.env.SECRET)
+        const decodedToken = jwt.verify(request.token, process.env.SECRET)
         if (!decodedToken.id) {
             return response.status(401).json({ error: 'token invalid' })
         }

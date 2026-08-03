@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken')
 const blogsRouter = require('express').Router()
 const Blog = require('../models/blog')
 const User = require('../models/user')
+const middleware = require('../utils/middleware')
 
 // Helper function to extract the Bearer token from headers
 const getTokenFrom = request => {
@@ -21,22 +22,15 @@ blogsRouter.get('/', async (request, response) => {
     })
 
 // POST new blog
-blogsRouter.post('/', async (request, response, next) => {
+blogsRouter.post('/', middleware.userExtractor, async (request, response, next) => {
     try {
         const body = request.body
-        const token = getTokenFrom(request)
-
-        // Verify token using secret key
-        const decodedToken = jwt.verify(request.token, process.env.SECRET)
-        if (!decodedToken.id) {
-            return response.status(401).json({ error: 'token invalid' })
-        }
-
-        // Find the first user who sent the token
-        const user = await User.findById(decodedToken.id)
+        
+        // request.user is now set directly by the middleware
+        const user = request.user
 
         if (!user) {
-            return response.status(400).json({ error: 'no user to assign blog to' })
+            return response.status(401).json({ error: 'token missing or invalid' })
         }
 
         const blog = new Blog({
@@ -60,8 +54,11 @@ blogsRouter.post('/', async (request, response, next) => {
 })
 
 blogsRouter.delete('/:id', async (request, response) => {
-    await Blog.findbyDelete(request.params.id)
+    await Blog.findById(request.params.id)
+
+    if ( blog.user.toString() === userid.toString() ) {
     response.status(204).end()
+    }
 })
 
 blogsRouter.put('/:id', async (request, response) => {

@@ -1,4 +1,6 @@
 const logger = require('./logger')
+const jwt = require('jsonwebtoken')
+const User = require('../models/user')
 
 const requestLogger = (request, response, next) => {
     logger.info('Method:', request.method)
@@ -22,11 +24,11 @@ const errorHandler = (error, request, response, next) => {
     } else if (error.name === 'MongoServerError' && error.message.includes('E11000 duplicate key error')) {
         return response.status(400).json({ error: 'expected `username` to be unique' })
     } else if (error.name === 'JsonWebTokenError') {
-        return response.status(401).json({ error: 'invalid token' })
+        return response.status(401).json({ error: 'token missing or invalid' })
     } else if (error.name === 'TokenExpiredError') {
         return response.status(401).json({ error: 'token expired' })
     }
-    
+
     next(error)
 }
 
@@ -40,18 +42,26 @@ const tokenExtractor = (request, response, next) => {
     }
 
     next()
-} 
+}
 
 const userExtractor = async (request, response, next) => {
-    if (request.token) {
+    if (!request.token) {
+        request.user = null
+        return next()
+    }
+
+    try {
         const decodedToken = jwt.verify(request.token, process.env.SECRET)
         if (decodedToken.id) {
             request.user = await User.findById(decodedToken.id)
         } else {
             request.user = null
         }
-        next()
+    } catch (error) {
+        return next(error) // Pass JWT errors directly to errorHandler
     }
+
+    next()
 }
 
 module.exports = {

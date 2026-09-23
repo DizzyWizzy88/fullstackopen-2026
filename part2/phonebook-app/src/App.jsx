@@ -27,6 +27,7 @@ const NotificationBanner = ({ message, isError }) => {
     )
 }
 
+
 const App = () => {
     const [persons, setPersons] = useState([])
     const [newName, setNewName] = useState('')
@@ -64,11 +65,7 @@ const App = () => {
 
         // Exercise 2.15: Handle updating an existing number
         if (existingPerson) {
-            const confirmUpdate = window.confirm(
-                `${newName} is already added to the phonebook, replace the old number with a new one?`
-            )
-
-            if (confirmUpdate) {
+            if (window.confirm(`${newName} is already added to phonebook, replace the old number with a new one?`)) {
                 const changedPerson = { ...existingPerson, number: newNumber }
 
                 personService
@@ -80,31 +77,30 @@ const App = () => {
                         setNewNumber('')
                     })
                     .catch(error => {
-                        showNotification(`Information of ${existingPerson.name} has already been removed from server`, true)
+                        setErrorMessage(error.response.data.error)
                         setPersons(persons.filter(p => p.id !== existingPerson.id))
+                        setTimout(() => setErrorMessage(null), 5000)
                     })
-            }
+                } else {
+            // Creating a brand new contact record
+                const personObject = {
+                name: newName,
+                number: newNumber
+                }
 
-            return
-        }
-
-        // Creating a brand new contact record
-        const personObject = {
-            name: newName,
-            number: newNumber
-        }
-
-        personService
-            .create(personObject)
-            .then(returnedPerson => {
-                setPersons(persons.concat(returnedPerson))
-                showNotification(`Added ${returnedPerson.name}`)
-                setNewName('')
-                setNewNumber('')
+                personService
+                    .create(personObject)
+                    .then(returnedPerson => {
+                        setPersons(persons.concat(returnedPerson))
+                        showNotification(`Added ${returnedPerson.name}`)
+                        setNewName('')
+                        setNewNumber('')
+                })
+                .catch(error => {
+                setErrorMEssage(error.response.data.error)
+                setTimout(() => setErrorMessage(null), 5000)
             })
-            .catch(error => {
-                showNotification('Failed to create new contact.', true)
-            })
+        }
     }
 
     // Exercise 2.16: Handle deleting an entry
@@ -157,6 +153,7 @@ const App = () => {
             </ul>
         </div>
     )
+}
 }
 
 export default App

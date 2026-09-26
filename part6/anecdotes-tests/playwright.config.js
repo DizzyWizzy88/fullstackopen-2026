@@ -1,16 +1,15 @@
+
 import { defineConfig, devices } from "@playwright/test"
 
 export default defineConfig({
   testDir: "./tests",
-  // The backend is shared, mutable state (json-server writes to db.json),
-  // so tests must not run concurrently against it.
   fullyParallel: false,
   workers: 1,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: "html",
   use: {
-    baseURL: "http://localhost:5173",
+    baseURL: "http://127.0.0.1:5173",
     trace: "on-first-retry",
   },
   projects: [
@@ -21,15 +20,15 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: "npm run dev -- --port 5173",
+      command: "npm run dev -- --host 127.0.0.1 --port 5173",
       cwd: "../anecdotes",
-      url: "http://localhost:5173",
+      url: "http://127.0.0.1:5173",
       reuseExistingServer: !process.env.CI,
     },
     {
-      command: "npx json-server --port 3001 --watch db-test.json",
+      command: "npx json-server --host 127.0.0.1 --port 3001 --watch db-test.json",
       cwd: ".",
-      url: "http://localhost:3001/anecdotes",
+      url: "http://127.0.0.1:3001/anecdotes",
       reuseExistingServer: !process.env.CI,
     },
   ],

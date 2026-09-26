@@ -1,3 +1,4 @@
+
 import { test, expect } from "@playwright/test"
 import { writeFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
@@ -21,7 +22,7 @@ const sortedContents = [...initialAnecdotes]
   .sort((a, b) => b.votes - a.votes)
   .map((a) => a.content)
 
-// json-server watches db.json and reloads it on change, but the reload is
+// json-server watches db-test.json and reloads it on change, but the reload is
 // async, so poll the API until it reflects the reset data before continuing.
 const resetDb = async ({ request }) => {
   writeFileSync(dbPath, JSON.stringify({ anecdotes: initialAnecdotes }, null, 2))
@@ -44,7 +45,16 @@ const deleteButtonFor = (page, content) => anecdoteItem(page, content).getByRole
 test.describe("Anecdotes", () => {
   test.beforeEach(async ({ page, request }) => {
     await resetDb({ request })
+
+    // Listen for backend request prior to navigation to avoid race condition
+    const responsePromise = page.waitForResponse(
+      (res) => res.url().includes("/anecdotes") && res.status() === 200
+    )
+
     await page.goto("/")
+    await responsePromise
+
+    // Wait for the first initial anecdote to appear on screen
     await expect(page.getByText(initialAnecdotes[0].content)).toBeVisible()
   })
 
@@ -116,7 +126,11 @@ test.describe("Anecdotes", () => {
     await page.getByRole("button", { name: "create" }).click()
     await expect(page.getByText("Persisted from the form", { exact: true })).toBeVisible()
 
+    const responsePromise = page.waitForResponse(
+      (res) => res.url().includes("/anecdotes") && res.status() === 200
+    )
     await page.reload()
+    await responsePromise
 
     await expect(page.getByText("Persisted from the form", { exact: true })).toBeVisible()
     await expect(anecdoteItem(page, "Persisted from the form")).toContainText("has 0")
@@ -127,7 +141,11 @@ test.describe("Anecdotes", () => {
     await voteButtonFor(page, content).click()
     await expect(anecdoteItem(page, content)).toContainText("has 4")
 
+    const responsePromise = page.waitForResponse(
+      (res) => res.url().includes("/anecdotes") && res.status() === 200
+    )
     await page.reload()
+    await responsePromise
 
     await expect(anecdoteItem(page, content)).toContainText("has 4")
   })
@@ -152,7 +170,12 @@ test.describe("Anecdotes", () => {
     await deleteButtonFor(page, zeroVoteContent).click()
     await expect(page.getByText(zeroVoteContent, { exact: true })).not.toBeVisible()
 
+    const responsePromise = page.waitForResponse(
+      (res) => res.url().includes("/anecdotes") && res.status() === 200
+    )
     await page.reload()
+    await responsePromise
+
     await expect(page.getByText(zeroVoteContent, { exact: true })).not.toBeVisible()
   })
 

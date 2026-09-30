@@ -1,21 +1,20 @@
-import { useNotification } from "../store"
+import { useNotification } from '../store'
 
 const Notification = () => {
   const notification = useNotification()
 
-  if (!notification) return null
+  if (!notification) {
+    return null
+  }
 
   const style = {
-    border: "solid 1px",
+    border: 'solid',
     padding: 10,
+    borderWidth: 1,
     marginBottom: 10,
   }
 
-  return (
-    <div style={style} data-testid="notification">
-      {notification}
-    </div>
-  )
+  return <div data-testid="notification" style={style}>{notification}</div>
 }
 
 export default Notification
